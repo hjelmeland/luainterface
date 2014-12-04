@@ -629,6 +629,17 @@ namespace LuaInterface
 			translator.push(luaState,val);
 			LuaDLL.lua_settable(luaState,-3);
 		}
+
+		/* Create a new Lua table, anchor it Lua Registry, make and return LuaTable proxy.
+		 * Equivalent to lua.DoString("return {}")[0]
+		 * Remember to call t.Dispose() when done in order to release anchor in Lua Registry
+		 */
+		public LuaTable NewTable()
+		{
+			LuaDLL.lua_newtable(luaState);
+			return new LuaTable(LuaDLL.lua_ref(luaState, 1), this);
+		}
+
 		/*
 		 * Creates a new table as a global variable or as a field
 		 * inside an existing table
@@ -655,6 +666,21 @@ namespace LuaInterface
 				LuaDLL.lua_settable(luaState,-3);
 			}
 			LuaDLL.lua_settop(luaState,oldTop);
+		}
+
+        /* Given a Lua compatible C# function: make a lua closure and 
+         * anchor it Lua Registry, 
+         * make and return LuaFunction proxy.
+         * The body of the function must be implemented using low-level  
+         * Lua511.LuaDLL stack methods.
+         * You may want to call f.Dispose() when done in order to release 
+         * anchor in Lua Registry.
+         * Useful for providing a C# callback to Lua.
+         */
+        public LuaFunction NewLuaCSFunction(LuaCSFunction func)
+		{
+			LuaDLL.lua_pushstdcallcfunction(luaState, func);
+			return new LuaFunction(LuaDLL.lua_ref(luaState, 1), this);
 		}
 
 		public ListDictionary GetTableDict(LuaTable table)

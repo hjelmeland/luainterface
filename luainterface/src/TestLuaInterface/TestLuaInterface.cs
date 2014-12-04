@@ -1232,9 +1232,45 @@ namespace LuaInterface.Tests
             _Lua.DoString("luanet.free_object(test)");
             TestOk(3 == a);
             //Console.WriteLine("interface returned: "+a);
+             Destroy();
+       }
+
+        /*
+         * Test make LuaTable in C#, modify it and pass it to Lua
+         */
+        public void TestNewTable()
+        {
+            Init();
+            LuaTable t = _Lua.NewTable();
+            t[5] = "ipsum";  
+            _Lua["TABLE"] = t;  // set new table as global variable
+            t.Dispose();
+            
+            object[] res =   _Lua.DoString("return TABLE[5]");
+            TestOk("ipsum" == (string)res[0]);
+            Destroy();
+        }
+
+        /*
+          * Test make Lua Api based LuaFunction in C#, and pass it to Lua
+          */
+        private static int _test_Lua_API_function(IntPtr luaState) {
+            Lua511.LuaDLL.lua_pushstring(luaState, "xkcd");
+            return 1;
+        }
+
+        public void TestNewLuaCSFunction() {
+            Init();
+            LuaFunction f = _Lua.NewLuaCSFunction(_test_Lua_API_function);
+            _Lua["FUNC"] = f;  // set new Function as global variable
+
+            object[] res = _Lua.DoString("return FUNC()");
+            TestOk("xkcd" == (string)res[0]);
+            Destroy();
         }
 
 
+        
         /// <summary>
         /// Basic multiply method which expects 2 floats
         /// </summary>
@@ -1494,6 +1530,12 @@ namespace LuaInterface.Tests
 
             Console.WriteLine("Testing inheriting a method from Lua...");
             obj.LuaTableInheritedMethod();
+
+            Console.WriteLine("Testing Lua.NewTable ...");
+            obj.TestNewTable();
+
+            Console.WriteLine("Testing Lua.NewLuaCSFunction ...");
+            obj.TestNewLuaCSFunction();
 
             Console.WriteLine("Testing overriding a C# method with Lua...");
             obj.LuaTableOverridedMethod();
