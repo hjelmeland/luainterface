@@ -806,6 +806,26 @@ namespace Lua511
 
       // end of lua debug hook functions
 
+		static double luaL_optnumber (IntPtr luaState, int narg, double d)
+		{
+			return ::luaL_optnumber(toState, narg, d);
+		}
+		
+		static double luaL_checknumber (IntPtr luaState, int narg)
+		{
+			return ::luaL_checknumber(toState, narg);
+		}
+		
+#undef luaL_argcheck
+		static void luaL_argcheck (IntPtr luaState, bool cond, int narg, String^ extramsg)
+		{
+			if (cond == false) {
+				char *cs = (char *) Marshal::StringToHGlobalAnsi(extramsg).ToPointer();
+				int result = ::luaL_argerror(toState, narg, cs);
+				Marshal::FreeHGlobal(IntPtr(cs));
+			} 
+		}
+		
 private:
 
 		// Starting with 5.1 the auxlib version of checkudata throws an exception if the type isn't right
