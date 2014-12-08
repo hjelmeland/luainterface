@@ -93,6 +93,7 @@ namespace LuaInterface
             LuaDLL.lua_replace(luaState, (int)LuaIndexes.LUA_GLOBALSINDEX);
 			translator=new ObjectTranslator(this,luaState);
             LuaDLL.lua_replace(luaState, (int)LuaIndexes.LUA_GLOBALSINDEX);
+            ObjectTranslator.installLuanetLoader(luaState);
 			LuaDLL.luaL_dostring(luaState, Lua.init_luanet);	// steffenj: lua_dostring renamed to luaL_dostring
 
             // We need to keep this in a managed reference so the delegate doesn't get garbage collected

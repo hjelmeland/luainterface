@@ -155,6 +155,22 @@ namespace LuaInterface
 			LuaDLL.lua_settable(luaState,-3);
 			LuaDLL.lua_settop(luaState,-2);
 		}
+
+		/* Replace the native dll loader at _G.package.loaders[3] with 
+		 * our own .NET based assembly loader
+		 */
+		public static int installLuanetLoader(IntPtr luaState)
+		{
+			int oldtop = LuaDLL.lua_gettop(luaState);
+			LuaDLL.lua_getglobal(luaState, "package");  //_G.package
+			LuaDLL.lua_getfield(luaState, -1, "loaders"); //_G.package.loaders
+			LuaDLL.lua_pushnumber(luaState, 3); // key..
+			LuaDLL.lua_pushstdcallcfunction(luaState, luanetLoader); // value..
+			LuaDLL.lua_settable(luaState, -3); // _G.package.loaders[3] = luanet_loader
+			LuaDLL.lua_settop(luaState, oldtop);
+			return 0;
+		}
+
 		/*
 		 * Passes errors (argument e) to the Lua interpreter
 		 */
@@ -406,6 +422,67 @@ namespace LuaInterface
 			}
 			return 1;
 		}
+
+		/* Replacement for the the native dll loader (at  _G.package.loaders[3]): 
+		 * Load from .NET based assemblies!
+		 */
+		public static int luanetLoader(System.IntPtr luaState)
+		{
+			//int oldTop = LuaDLL.lua_gettop(luaState);
+
+			// param 1: module name
+			string module = LuaDLL.lua_tostring(luaState, 1);
+ 
+			// get lua["package.cpath"]
+			LuaDLL.lua_getglobal(luaState, "package");
+			LuaDLL.lua_getfield(luaState, -1, "cpath");
+			string cpath = LuaDLL.lua_tostring(luaState, -1);
+			string[] paths = cpath.Split(new char[] { ';' });
+			string module_path = module.Replace('.', '\\');
+			string err = "";
+
+			for (int i = 0; i < paths.Length; i++)
+			{
+				// calcuate full name of dll
+				string filename = paths[i].Replace("?", module_path);
+				filename = System.IO.Path.GetFullPath(filename);
+
+				try
+				{
+					System.Reflection.Assembly ass =
+						System.Reflection.Assembly.LoadFile(filename);
+					string className = module.Replace('.', '_');
+					string classNameFull = "Lua511.Module." + className;
+					System.Type klass = ass.GetType(classNameFull);
+					if (klass != null)
+					{
+						System.Reflection.MethodInfo mInfo = klass.GetMethod("load");
+						if (mInfo != null)
+						{
+							 Lua511.LuaCSFunction d = 
+								(Lua511.LuaCSFunction)System.Delegate.CreateDelegate(
+								typeof(Lua511.LuaCSFunction), mInfo);
+							//LuaDLL.lua_settop(luaState, oldTop);
+							LuaDLL.lua_pushstdcallcfunction(luaState, d);
+							return 1;
+						}
+					}
+				}
+				catch (System.IO.FileNotFoundException)
+				{
+					err = err + System.String.Format("\tno file '{0}'\n", filename);
+				}
+				catch (System.ArgumentException) { }
+				
+			}
+
+			//LuaDLL.lua_settop(luaState, oldTop);
+			LuaDLL.lua_pushstring(luaState, err); 
+
+			return 1;
+		}
+
+
 		/*
 		 * Pushes a type reference into the stack
 		 */
