@@ -537,6 +537,18 @@ namespace Lua511
 #endif
 		}
 
+		// return a Lua string as a byte array
+		static array<System::Byte>^ lua_tobytes(IntPtr luaState, int index)
+		{
+			if (lua_type(luaState, index) != LuaTypes::LUA_TSTRING )
+				return nullptr;
+			size_t strlen;
+			const char *str = ::lua_tolstring(toState, index, &strlen);
+			array<Byte>^ bytes = gcnew array<Byte>(strlen);
+			Marshal::Copy(IntPtr((void *)str), bytes, 0, strlen);
+			return bytes;
+		}
+	
         static void lua_atpanic(IntPtr luaState, LuaCSFunction^ panicf)
 		{
 			IntPtr p = Marshal::GetFunctionPointerForDelegate(panicf);
@@ -601,6 +613,12 @@ namespace Lua511
 			Marshal::FreeHGlobal(IntPtr(cs));
 		}
 
+		// push byte array as Lua string
+		static void lua_pushbytes(IntPtr luaState, array<System::Byte>^  bytes)
+		{
+			pin_ptr<unsigned char> str = &bytes[0];
+			::lua_pushlstring(toState, (char*)str, bytes->Length);
+		}
 
 		static int luaL_newmetatable(IntPtr luaState, String^ meta)
 		{

@@ -67,7 +67,7 @@
   <ItemGroup>
     <Reference Include="lua51, Version=0.0.0.0, Culture=neutral, PublicKeyToken=1e1fb15b02227b8a, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\bit32\ConsoleApplication1\lua51.dll</HintPath>
+      <HintPath>..\..\..\Built\lua51.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />

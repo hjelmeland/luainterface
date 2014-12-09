@@ -1269,7 +1269,46 @@ namespace LuaInterface.Tests
             Destroy();
         }
 
+        private static int _test_pushbytes_function(IntPtr luaState)
+        {
+            Lua511.LuaDLL.lua_pushbytes(luaState, new byte[] { 0x20, 0x00, 0xff } );
+            return 1;
+        }
 
+        private static int _test_tobytes_function(IntPtr luaState)
+        {
+            byte[] bytes = Lua511.LuaDLL.lua_tobytes(luaState, 1);
+            bool OK = ( 
+                  bytes[0] == 0x21 &&
+                  bytes[1] == 0x00 &&
+                  bytes[2] == 0xfe &&
+                  bytes.Length == 3
+            );
+            Lua511.LuaDLL.lua_pushboolean(luaState, OK );
+            return 1;
+        }
+
+        public void TestPushGetBytes()
+        {
+            Init();
+
+            // test LuaDLL.lua_pushbytes()
+            LuaFunction f = _Lua.NewLuaCSFunction(_test_pushbytes_function);
+            _Lua["FUNC"] = f;  // set new Function as global variable
+            object[] res = _Lua.DoString("return FUNC():byte(1,-1)");
+            TestOk(res.Length == 3);
+            TestOk(Convert.ToUInt32(res[0]) == 0x20);
+            TestOk(Convert.ToUInt32(res[1]) == 0x00);
+            TestOk(Convert.ToUInt32(res[2]) == 0xff);
+
+            // test LuaDLL.lua_tobytes()
+            _Lua["FUNC2"] = _Lua.NewLuaCSFunction(_test_tobytes_function);
+            res = _Lua.DoString("return FUNC2(string.char(0x21,0x00, 0xfe))");
+            TestOk(res.Length == 1);
+            TestOk(Convert.ToBoolean (res[0]) == true);
+
+            Destroy();
+        }
         
         /// <summary>
         /// Basic multiply method which expects 2 floats
@@ -1537,6 +1576,9 @@ namespace LuaInterface.Tests
             Console.WriteLine("Testing Lua.NewLuaCSFunction ...");
             obj.TestNewLuaCSFunction();
 
+            Console.WriteLine("Testing LuaDLL.lua_pushbytes and LuaDLL.lua_tobytes  ...");
+            obj.TestPushGetBytes();
+
             Console.WriteLine("Testing overriding a C# method with Lua...");
             obj.LuaTableOverridedMethod();
 
@@ -1567,8 +1609,8 @@ namespace LuaInterface.Tests
             Console.WriteLine("Test generics...");
             obj.TestGenerics();
 
-            Console.WriteLine("Test threading...");
-            obj.TestThreading();
+            //Console.WriteLine("Test threading...");
+            //obj.TestThreading();
 
             Console.WriteLine("Test memory leakage...");
             obj.TestDispose();
