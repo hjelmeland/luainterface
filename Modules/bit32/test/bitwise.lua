@@ -1,3 +1,5 @@
+local bit32 = require'bit32'
+
 print("testing bitwise operations")
 
 assert(bit32.band() == bit32.bnot(0))
