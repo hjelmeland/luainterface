@@ -9,7 +9,7 @@ namespace Lua511.Module
 	public class crc32
 	{
 
-        static private readonly uint32_t[] crc32_tab = {
+		static private readonly uint32_t[] crc32_tab = {
 			0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
 			0xe963a535, 0x9e6495a3,	0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
 			0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2,
@@ -59,34 +59,54 @@ namespace Lua511.Module
 		{
 
 			crc = crc ^ ~0U;
-            for(int i = 0; i < bytes.Length; ++i) {
-                byte index = (byte)(((crc) & 0xff) ^ bytes[i]);
-                crc = (uint32_t)((crc >> 8) ^ crc32_tab[index]);
-            }
+			for(int i = 0; i < bytes.Length; ++i) {
+				byte index = (byte)(((crc) & 0xff) ^ bytes[i]);
+				crc = (uint32_t)((crc >> 8) ^ crc32_tab[index]);
+			}
 			return crc ^ ~0U;
 		}
 
 		static private int l_crc32_update(lua_State L)
-        {
-            byte[] bytes = LuaDLL.lua_tobytes(L, 1);
-            uint32_t crc = (uint32_t)LuaDLL.luaL_checknumber(L, 2);
-            crc = crc32_update(crc, bytes);
+		{
+			byte[] bytes = LuaDLL.lua_tobytes(L, 1);
+			uint32_t crc = (uint32_t)LuaDLL.luaL_checknumber(L, 2);
+			crc = crc32_update(crc, bytes);
 			LuaDLL.lua_pushnumber(L, crc); 
 			return 1;
-        }
+		}
 
-        // Adapted https://github.com/hjelmeland/luacrc32/blob/master/crc32.lua
+		static private int l_n_tostring(lua_State L) // convert number to 4 byte string
+		{
+			uint32_t n = (uint32_t)LuaDLL.luaL_checknumber(L, 1);
+			byte[] bytes = new byte[4];
+
+			for (int i = 3; i>=0; i--) {
+				bytes[i] = (byte)(n & 0xff);
+				n>>=8;
+			}
+			LuaDLL.lua_pushbytes(L, bytes); 
+			return 1;
+		}
+
+		static private int l_str_to_num(lua_State L) // convert 4 byte string to number 
+		{
+			byte[] bytes = LuaDLL.lua_tobytes(L,1);
+			int crc_len = bytes.Length;
+			if (crc_len>4) crc_len = 4;
+			uint32_t crc_in = 0;
+			for (int i = 0; i < crc_len; i++) {
+				crc_in<<=8;
+				crc_in |= bytes[i];
+			 }
+			LuaDLL.lua_pushnumber(L, crc_in); 
+			return 1;
+		}
+
+		// Adapted https://github.com/hjelmeland/luacrc32/blob/master/crc32.lua
 		private const string lua_code = @"
-			return function (crc32_string)
-				local require,setmetatable,string,table,type
-					= require,setmetatable,string,table,type
-
-				local bit = require'bit32'
-				local band = bit.band
-				local bor = bit.bor
-				local rshift = bit.rshift
-				local lshift = bit.lshift
-
+			return function (crc32_string, n_tostring, str_to_num)
+				local setmetatable,type
+					= setmetatable,type
 
 				local crc_mt = {
 					update = function (self, data)
@@ -101,13 +121,7 @@ namespace Lua511.Module
 						return self[1] 
 					end, 
 					tostring = function (self)
-						local crc_out = self[1] 
-						local crcout_bytes = {}
-						for i =  4, 1,-1  do
-							crcout_bytes[i] = string.char(band( crc_out , 0xff))
-							crc_out = rshift(crc_out, 8)
-						end
-						return table.concat(crcout_bytes)
+						return n_tostring(self[1])
 					end, 
 					tohex = function (self)
 						return ('%8.8x'):format(self[1] )
@@ -118,23 +132,10 @@ namespace Lua511.Module
 
 				return {
 					crc32 = function (crc, data)
-					
 						if type(crc) == 'string' then
-							local crc_len=#crc
-							if crc_len>4 then crc_len = 4 end
-							local crc_in = 0;
-							for i =  1, crc_len do
-								crc_in = lshift(crc_in, 8)
-								crc_in = bor(crc_in, crc:byte(i))
-							end
-							
+							local crc_in = str_to_num(crc);
 							local crc_out = crc32_string(data, crc_in )
-							local crcout_bytes = {}
-							for i =  4, 1,-1  do
-								crcout_bytes[i] = string.char(band( crc_out , 0xff))
-								crc_out = rshift(crc_out, 8)
-							end
-							return table.concat(crcout_bytes)
+							return n_tostring(crc_out)
 						end
 						return crc32_string(data, crc )
 					end,
@@ -147,12 +148,14 @@ namespace Lua511.Module
 			end
 			";
 
-        public static int load(lua_State L)
-        {
-            LuaDLL.luaL_dostring(L, lua_code); // return function (crc32_string)
-            LuaDLL.lua_pushstdcallcfunction(L, l_crc32_update); // set parameter..
-            LuaDLL.lua_call(L, 1, 1); //call the returned function, returning table
-            return 1;
-        }
+		public static int load(lua_State L)
+		{
+			LuaDLL.luaL_dostring(L, lua_code); // return function (crc32_string)
+			LuaDLL.lua_pushstdcallcfunction(L, l_crc32_update); // set parameter..
+			LuaDLL.lua_pushstdcallcfunction(L, l_n_tostring); // set parameter..
+			LuaDLL.lua_pushstdcallcfunction(L, l_str_to_num); // set parameter..
+			LuaDLL.lua_call(L, 3, 1); //call the returned function, returning module table
+			return 1;
+		}
 	}
 }
