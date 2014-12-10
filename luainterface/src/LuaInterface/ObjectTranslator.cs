@@ -439,7 +439,7 @@ namespace LuaInterface
 			string cpath = LuaDLL.lua_tostring(luaState, -1);
 			string[] paths = cpath.Split(new char[] { ';' });
 			string module_path = module.Replace('.', '\\');
-			string err = "";
+			string err = "\n";
 
 			for (int i = 0; i < paths.Length; i++)
 			{
