@@ -1277,6 +1277,7 @@ namespace LuaInterface.Tests
 
         private static int _test_tobytes_function(IntPtr luaState)
         {
+            Lua511.LuaDLL.luaL_checktype(luaState, 1, Lua511.LuaTypes.LUA_TSTRING);
             byte[] bytes = Lua511.LuaDLL.lua_tobytes(luaState, 1);
             bool OK = ( 
                   bytes[0] == 0x21 &&

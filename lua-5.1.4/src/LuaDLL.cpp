@@ -834,6 +834,13 @@ namespace Lua511
 			return ::luaL_checknumber(toState, narg);
 		}
 		
+		
+		static void luaL_checktype (IntPtr luaState, int narg, LuaTypes luatype)
+		{
+			return ::luaL_checktype(toState, narg, (int)luatype);
+		}
+
+
 #undef luaL_argcheck
 		static void luaL_argcheck (IntPtr luaState, bool cond, int narg, String^ extramsg)
 		{
