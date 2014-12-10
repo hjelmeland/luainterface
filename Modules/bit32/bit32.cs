@@ -207,12 +207,9 @@ namespace Lua511.Module
 
 		// add a function as name to table at top of stack
 		private static void table_add_func (lua_State L, string name, LuaCSFunction function) {
-			int oldTop = LuaDLL.lua_gettop(L);  // should be table
-			LuaDLL.lua_getfield(L, -1, "loaders"); //_G.package.loaders
 			LuaDLL.lua_pushstring (L, name); // key..
 			LuaDLL.lua_pushstdcallcfunction(L, function); // value..
-			LuaDLL.lua_settable(L, oldTop); // _G.package.loaders[3] = luanet_loader
-			LuaDLL.lua_settop(L,oldTop);
+			LuaDLL.lua_settable(L, -3); // top[key] = function
 		}
 
 
