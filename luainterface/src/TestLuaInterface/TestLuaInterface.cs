@@ -1274,6 +1274,12 @@ namespace LuaInterface.Tests
             Lua511.LuaDLL.lua_pushbytes(luaState, new byte[] { 0x20, 0x00, 0xff } );
             return 1;
         }
+        
+        private static int _test_pushbytes_function2(IntPtr luaState)
+        {
+            Lua511.LuaDLL.lua_pushbytes(luaState, new byte[] { 0x20, 0x00, 0xff }, 2 );
+            return 1;
+        }
 
         private static int _test_tobytes_function(IntPtr luaState)
         {
@@ -1293,7 +1299,7 @@ namespace LuaInterface.Tests
         {
             Init();
 
-            // test LuaDLL.lua_pushbytes()
+            // test LuaDLL.lua_pushbytes(bytes)
             LuaFunction f = _Lua.NewLuaCSFunction(_test_pushbytes_function);
             _Lua["FUNC"] = f;  // set new Function as global variable
             object[] res = _Lua.DoString("return FUNC():byte(1,-1)");
@@ -1301,6 +1307,14 @@ namespace LuaInterface.Tests
             TestOk(Convert.ToUInt32(res[0]) == 0x20);
             TestOk(Convert.ToUInt32(res[1]) == 0x00);
             TestOk(Convert.ToUInt32(res[2]) == 0xff);
+
+           // test LuaDLL.lua_pushbytes(bytes, length)
+            f = _Lua.NewLuaCSFunction(_test_pushbytes_function2);
+            _Lua["FUNC"] = f;  // set new Function as global variable
+            res = _Lua.DoString("return FUNC():byte(1,-1)");
+            TestOk(res.Length == 2);
+            TestOk(Convert.ToUInt32(res[0]) == 0x20);
+            TestOk(Convert.ToUInt32(res[1]) == 0x00);
 
             // test LuaDLL.lua_tobytes()
             _Lua["FUNC2"] = _Lua.NewLuaCSFunction(_test_tobytes_function);

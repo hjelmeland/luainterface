@@ -619,6 +619,14 @@ namespace Lua511
 			pin_ptr<unsigned char> str = &bytes[0];
 			::lua_pushlstring(toState, (char*)str, bytes->Length);
 		}
+		
+		// push length bytes of byte array as Lua string
+		static void lua_pushbytes(IntPtr luaState, array<System::Byte>^  bytes, int length)
+		{
+			if (length > bytes->Length) length = bytes->Length;
+			pin_ptr<unsigned char> str = &bytes[0];
+			::lua_pushlstring(toState, (char*)str, length);
+		}
 
 		static int luaL_newmetatable(IntPtr luaState, String^ meta)
 		{
