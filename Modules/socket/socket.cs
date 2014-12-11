@@ -16,6 +16,19 @@ namespace Lua511.Module
 		private static readonly Dictionary<int, Socket> sockets = new Dictionary<int, Socket>();
 		private static int nextSockIx = 0;
 
+		private static System.DateTime unixEpoch =  
+			new System.DateTime(1970, 1, 1, 0, 0, 0, 0,
+				System.DateTimeKind.Utc);
+				
+		public static double gettime() {
+			System.TimeSpan span = System.DateTime.UtcNow - unixEpoch;
+			return span.TotalSeconds;
+		}
+				
+				
+//TimeSpan span = (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0,DateTimeKind.Utc));
+//double unixTime = span.TotalSeconds;
+
 		/*
 		* __gc metafunction of Socket userdata proxy. 
 		* Will be unneccesary with Lua 5.2, which offer finalizer on tables
@@ -108,13 +121,35 @@ namespace Lua511.Module
 			// 2do: handle timeout and nonblocking sockets
 			Socket s = udata2Socket(L, -1);
 			if ( s == null ) return 2; // error results from udata2Socket()
+			
+			int microSeconds = 0;
+			LuaDLL.lua_getfield (L, 1, "timeout");
+			if (LuaDLL.lua_type(L, -1) == LuaTypes.LUA_TNUMBER) {
+				double timeout = LuaDLL.lua_tonumber(L, -1);
+				microSeconds = (int) (timeout * 1e6);
+				s.Blocking = false;
+			}
+
 			try {
 				s.Connect(address, port);
 			}
+			
 			catch (Sockets.SocketException ex) {
-				return return_sock_err(L, ex);
+				if (ex.ErrorCode == 10035) { // WSAEWOULDBLOCK
+					bool ok = s.Poll(microSeconds, Sockets.SelectMode.SelectWrite);
+					if ( !ok ) {
+						LuaDLL.lua_pushnil(L);
+						LuaDLL.lua_pushstring(L, "timeout");
+						return 2;
+					}
+				} 
+				else
+					return return_sock_err(L, ex);
 			}
- 
+			finally {
+				s.Blocking = true; 
+			}
+			
 			LuaDLL.lua_pushnumber(L, 1);
 			return 1;
 		}

@@ -1,7 +1,7 @@
 -- semi automatic test, need a basic webserver on localhost:8080
 
-local arg,assert,collectgarbage,luanet,print,require,tonumber,type
-    = arg,assert,collectgarbage,luanet,print,require,tonumber,type
+local arg,assert,collectgarbage,luanet,print,require,type
+    = arg,assert,collectgarbage,luanet,print,require,type
 
 
 local address = 'localhost'
@@ -22,9 +22,9 @@ local function test ()
 			assert(type(s2) == 'table')
 			assert(type(s2[1]) == 'userdata')
 		end
-		assert(s2:settimeout (344 ) == 1)
+		assert(s2:settimeout (3.2 ) == 1)
 		if luanet then
-			assert(s2.timeout == 344)
+			assert(s2.timeout == 3.2)
 		end
 
 		assert(s2:connect(address, port) == 1);
@@ -74,7 +74,7 @@ local function test ()
 			--print(res, err, rest)
 			assert(res == 'Got:HTTP/1')
 			assert(err == nil)
-			assert(err == nil)
+			assert(rest == nil)
 		end
 		
 		do 
@@ -82,7 +82,7 @@ local function test ()
 			--print(res, err, rest)
 			assert(res:find'200/OK')
 			assert(err == nil)
-			assert(err == nil)
+			assert(rest == nil)
 			if verbose then
 				print()
 				print(#res, res)
@@ -141,5 +141,5 @@ end
 local res,err = xpcall(test, debug.traceback)
 if not res then print( err) end
 
---collectgarbage()
---print('Lua usage kB',  collectgarbage'count')
+collectgarbage()
+print('Lua usage kB',  collectgarbage'count')
