@@ -43,8 +43,7 @@ namespace Lua511.Module
 		// end of socket udata gc_stuff
 
 		// go from socket proxy userdata to Socket object
-		private static Socket udata2Socket(lua_State L, int pos)
-		{
+		private static Socket udata2Socket(lua_State L, int pos){
 			int ix = LuaDLL.luanet_checkudata(L, pos, registername);
 			
 			if (ix == -1)
@@ -65,10 +64,11 @@ namespace Lua511.Module
 		}
 
 		// socket methods 
-		private static int l_sock_settimeout(lua_State L)
-		{
+		
+		// settimeout method
+		private static int l_sock_settimeout(lua_State L) {
 			LuaDLL.luaL_checktype(L, 1, LuaTypes.LUA_TTABLE);
-			double timeout = LuaDLL.luaL_optnumber(L,2, 0);
+			double timeout = LuaDLL.luaL_checknumber(L,2);
 			LuaDLL.lua_pushstring (L, "timeout"); // key..
 			LuaDLL.lua_pushvalue(L,2); // value: copy of timeout
 			LuaDLL.lua_rawset(L, 1); // socket.timeout = timeout
@@ -79,7 +79,7 @@ namespace Lua511.Module
 			if ( s == null ) return 2; // error results from udata2Socket()
 			
 			if (timeout == 0) {
-				s.Blocking = false;
+				// s.Blocking = false; // not supported for now
 			} else {
 				int ms = (int)(1000*timeout);
 				s.ReceiveTimeout  = ms;
@@ -89,22 +89,23 @@ namespace Lua511.Module
 			return 1;
 		}
 
-		private static int return_sock_err(lua_State L, Sockets.SocketException ex)
-		{
+		private static int return_sock_err(lua_State L, Sockets.SocketException ex) {
 			string err = string.Format( "({0}) {1}", ex.ErrorCode, ex.Message); 
 			LuaDLL.lua_pushnil(L);
 			LuaDLL.lua_pushstring(L, err);
+			//System.Console.WriteLine("got error: {0}",err);
 			return 2;
 		}
 		
-		private static int l_sock_connect(lua_State L)
-		{
+		// connect method
+		private static int l_sock_connect(lua_State L) {
 			LuaDLL.luaL_checktype(L, 1, LuaTypes.LUA_TTABLE);
 			LuaDLL.luaL_checktype(L, 2, LuaTypes.LUA_TSTRING);
 			string address = LuaDLL.lua_tostring(L,2);
 			int port =  (int)LuaDLL.luaL_checknumber(L, 3);
 			
 			LuaDLL.lua_rawgeti(L,1, 1); // socket[1]
+			// 2do: handle timeout and nonblocking sockets
 			Socket s = udata2Socket(L, -1);
 			if ( s == null ) return 2; // error results from udata2Socket()
 			try {
@@ -117,9 +118,30 @@ namespace Lua511.Module
 			LuaDLL.lua_pushnumber(L, 1);
 			return 1;
 		}
+		
+		// send method
+		private static int l_sock_send(lua_State L) {
+			LuaDLL.luaL_checktype(L, 1, LuaTypes.LUA_TTABLE);
+			LuaDLL.luaL_checktype(L, 2, LuaTypes.LUA_TSTRING);
+			byte[] data = LuaDLL.lua_tobytes(L,2);
+			// 2do: handle optional substring indexes
+			LuaDLL.lua_rawgeti(L,1, 1); // socket[1]
+			Socket s = udata2Socket(L, -1);
+			if ( s == null ) return 2; // error results from udata2Socket()
+			int n;
+			try {
+				n = s.Send(data);
+			}
+			catch (Sockets.SocketException ex) {
+				return return_sock_err(L, ex);
+			}
+ 
+			LuaDLL.lua_pushnumber(L, n);
+			return 1;
+		}
 
-		private static int l_sock_close(lua_State L)
-		{
+		// close method
+		private static int l_sock_close(lua_State L) {
 			LuaDLL.luaL_checktype(L, 1, LuaTypes.LUA_TTABLE);
 			LuaDLL.lua_rawgeti(L,1, 1);  // socket[1]
 			int ix = LuaDLL.luanet_rawnetobj(L, -1);
@@ -131,8 +153,36 @@ namespace Lua511.Module
 			return 1;
 		}
 
-		private static int l_new_tcp(lua_State L)
-		{
+		// Helper for receive method: sock_receive(sock-udata, nbytes) return string 
+		private static int l_sock_receive_sz(lua_State L) {
+			/*
+			LuaDLL.luaL_checktype(L, 1, LuaTypes.LUA_TTABLE);
+			LuaDLL.lua_rawgeti(L,1, 1); // socket[1]
+			*/
+			Socket s = udata2Socket(L, 1);
+			if ( s == null ) return 2; // error results from udata2Socket()
+			int nbytes = (int)LuaDLL.luaL_checknumber(L,2);
+			byte[] buff = new byte[nbytes]; 
+			int n;
+			try {
+				n = s.Receive(buff);
+			}
+			catch (Sockets.SocketException ex) {
+				return return_sock_err(L, ex);
+			}
+			
+			if (n == 0) {  // EOF
+				LuaDLL.lua_pushnil(L);
+				LuaDLL.lua_pushstring(L, "closed");
+				return 2;
+			}
+			
+			LuaDLL.lua_pushbytes(L, buff, n);
+			return 1;
+		}
+
+
+		private static int l_new_tcp(lua_State L) {
 			Socket s = new Socket(
 				Sockets.AddressFamily.InterNetwork,
 				Sockets.SocketType.Stream,
@@ -153,9 +203,9 @@ namespace Lua511.Module
 		}
 
 		private const string lua_code = @"
-			return function(tcp_constructor, tcp_receive)
-				local error,getmetatable,pcall,setmetatable
-					= error,getmetatable,pcall,setmetatable
+			return function(tcp_constructor, sock_receive)
+				local error,getmetatable,pcall,setmetatable,type
+					= error,getmetatable,pcall,setmetatable,type
 				
 				--protect/newtry adapted from https://github.com/hjelmeland/try-lua/blob/master/try.lua 
 				local try_error_mt = { } -- tagging error as newtry error
@@ -191,49 +241,49 @@ namespace Lua511.Module
 				local BLOCK_SZ = 256
 				local tcp_mt = {
 					receive = function(self, pattern, prefix)
+						pattern = pattern or '*l'
 						local net_socket = self[1]
-						local data, err
-						prefix = prefix or ''
+						local partial_data = prefix or ''
+						partial_data = partial_data .. (self.rcv_buffer or '')
+						
 						if type(pattern) == 'number' then -- pattern is length
-							data, err = tcp_receive(net_socket, pattern)
+							local length = pattern - #partial_data
+							if length < 0 then length = 0 end
+							local data, err = sock_receive(net_socket, length)
 							if not data then return nil, err end
+							return partial_data .. data
 						elseif pattern == '*l' then  -- return single line
-							local partial_line = self.rcv_buffer or ''
-							local line, rest = partial_line:match'([^\n]*)\n(.*)'
+							local line, rest = partial_data:match'([^\n]*)\n(.*)'
 							if line then
-								data = line
+								line = line:gsub('[\r\n]', '')
 								self.rcv_buffer = rest
+								return line
 							else
 								while true do
-									data, err =  tcp_receive(net_socket, BLOCK_SZ)
-									if not data then return nil, err, (prefix or '') .. self.rcv_buffer end
+									local data, err =  sock_receive(net_socket, BLOCK_SZ)
+									if not data then return nil, err, partial_data end
 									--if data == '' then data = '\n' end -- force end of file
 									local line, rest = data:match'([^\n]*)\n(.*)'
 									if line then
-										data = partial_line..line
+										line = partial_data..line
 										self.rcv_buffer = rest
-										data = data:gsub('[\r\n]', '')
-										break
+										line = line:gsub('[\r\n]', '')
+										return line
 									end
-									partial_line = partial_line .. data
+									partial_data = partial_data .. data
 								end 
 							end
 						elseif pattern == '*a' then  -- read all
-							local partial_data = self.rcv_buffer or ''
 							while true do
-								data, err =  tcp_receive(net_socket, BLOCK_SZ)
+								local data, err =  sock_receive(net_socket, BLOCK_SZ)
 								if err == 'closed' then
-									data = partial_data
-									break
+									return partial_data
 								end
 								if not data then return nil, err end
 								partial_data = partial_data .. data
 							end 
 						end
-						if data and prefix then
-							data = prefix..data
-						end 
-						return data
+						return nil, 'illegal format'
 					end,
 				}
 				tcp_mt.__index = tcp_mt
@@ -258,15 +308,16 @@ namespace Lua511.Module
 			LuaDLL.lua_rawset(L, -3); // top[key] = function
 		}
 
-		public static int load(lua_State L)
-		{
+		public static int load(lua_State L) {
 			LuaDLL.luaL_dostring(L, lua_code); // return function (function(tcp_constructor,..)
 			LuaDLL.lua_pushstdcallcfunction(L, l_new_tcp); // set parameter..
-			LuaDLL.lua_call(L, 1, 2); //call the returned function, returning module table + metatable
+			LuaDLL.lua_pushstdcallcfunction(L, l_sock_receive_sz); // set parameter..
+			LuaDLL.lua_call(L, 2, 2); //call the returned function, returning module table + metatable
 			
 			// set Socket methods
 			table_add_func(L, "settimeout", l_sock_settimeout);
 			table_add_func(L, "connect",    l_sock_connect);
+			table_add_func(L, "send",       l_sock_send);
 			table_add_func(L, "close",      l_sock_close);
 			
 			LuaDLL.lua_pop(L, 1); // pop the metatable
