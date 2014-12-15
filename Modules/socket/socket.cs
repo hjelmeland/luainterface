@@ -237,8 +237,13 @@ namespace Lua511.Module
 			return 1;
 		}
 
+		private static int l_gettime(lua_State L) {
+			LuaDLL.lua_pushnumber(L, gettime());
+			return 1;
+		}
+
 		private const string lua_code = @"
-			return function(tcp_constructor, sock_receive)
+			return function(tcp_constructor, sock_receive, gettime)
 				local error,getmetatable,pcall,setmetatable,type
 					= error,getmetatable,pcall,setmetatable,type
 				
@@ -332,6 +337,7 @@ namespace Lua511.Module
 					protect = protect,
 					is_try_error = is_try_error,
 					tcp = tcp,
+					gettime=gettime,
 				}, tcp_mt
 			end
 		";
@@ -347,7 +353,9 @@ namespace Lua511.Module
 			LuaDLL.luaL_dostring(L, lua_code); // return function (function(tcp_constructor,..)
 			LuaDLL.lua_pushstdcallcfunction(L, l_new_tcp); // set parameter..
 			LuaDLL.lua_pushstdcallcfunction(L, l_sock_receive_sz); // set parameter..
-			LuaDLL.lua_call(L, 2, 2); //call the returned function, returning module table + metatable
+			LuaDLL.lua_pushstdcallcfunction(L, l_gettime); // set parameter..
+			
+			LuaDLL.lua_call(L, 3, 2); //call the returned function, returning module table + metatable
 			
 			// set Socket methods
 			table_add_func(L, "settimeout", l_sock_settimeout);

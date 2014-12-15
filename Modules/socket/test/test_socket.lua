@@ -138,8 +138,10 @@ local function test ()
 	
 end
 
+local start = S.gettime()
 local res,err = xpcall(test, debug.traceback)
 if not res then print( err) end
 
 collectgarbage()
+print('Time',   S.gettime() - start)
 print('Lua usage kB',  collectgarbage'count')
