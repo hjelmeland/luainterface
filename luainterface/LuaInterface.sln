@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "socket", "..\Modules\socket
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "md5", "..\Modules\md5\md5.csproj", "{B785C931-0BED-4DE2-9B3C-F7153DC1D02F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mime", "..\Modules\mime\mime.csproj", "{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -155,6 +157,16 @@ Global
 		{B785C931-0BED-4DE2-9B3C-F7153DC1D02F}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{B785C931-0BED-4DE2-9B3C-F7153DC1D02F}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{B785C931-0BED-4DE2-9B3C-F7153DC1D02F}.Release|Win32.ActiveCfg = Release|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -166,5 +178,6 @@ Global
 		{2BCEADFD-BB8E-4940-9797-0737315C5500} = {2FE013A3-57D6-4803-A06B-9AE213431BE3}
 		{E528D50C-12C6-4605-8675-5F5C93F5F0BF} = {2FE013A3-57D6-4803-A06B-9AE213431BE3}
 		{B785C931-0BED-4DE2-9B3C-F7153DC1D02F} = {2FE013A3-57D6-4803-A06B-9AE213431BE3}
+		{7DCB6E11-D1F1-496D-A8CA-A2BCA51981C4} = {2FE013A3-57D6-4803-A06B-9AE213431BE3}
 	EndGlobalSection
 EndGlobal
