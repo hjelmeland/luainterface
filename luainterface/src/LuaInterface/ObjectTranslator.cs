@@ -25,8 +25,10 @@ namespace LuaInterface
         internal Lua interpreter;
 		private MetaFunctions metaFunctions;
 		private List<Assembly> assemblies;
+		private List<Type> required_classes;
+		private List<LuaCSFunction> required_open_Functions;
 		private LuaCSFunction registerTableFunction,unregisterTableFunction,getMethodSigFunction,
-			getConstructorSigFunction,importTypeFunction,loadAssemblyFunction;
+			getConstructorSigFunction,importTypeFunction,loadAssemblyFunction, luanetLoaderFunction;
 
         internal EventHandlerContainer pendingEvents = new EventHandlerContainer();
 
@@ -36,6 +38,8 @@ namespace LuaInterface
 			typeChecker=new CheckType(this);
 			metaFunctions=new MetaFunctions(this);
 			assemblies=new List<Assembly>();
+			required_classes=new List<Type>();
+			required_open_Functions=new List<LuaCSFunction>();
 
 			importTypeFunction=new LuaCSFunction(this.importType);
 			loadAssemblyFunction=new LuaCSFunction(this.loadAssembly);
@@ -43,6 +47,7 @@ namespace LuaInterface
 			unregisterTableFunction=new LuaCSFunction(this.unregisterTable);
 			getMethodSigFunction=new LuaCSFunction(this.getMethodSignature);
 			getConstructorSigFunction=new LuaCSFunction(this.getConstructorSignature);
+			luanetLoaderFunction = new LuaCSFunction(this.luanetLoader );
 
 			createLuaObjectList(luaState);
 			createIndexingMetaFunction(luaState);
@@ -159,13 +164,13 @@ namespace LuaInterface
 		/* Replace the native dll loader at _G.package.loaders[3] with 
 		 * our own .NET based assembly loader
 		 */
-		public static int installLuanetLoader(IntPtr luaState)
+		public int installLuanetLoader(IntPtr luaState)
 		{
 			int oldtop = LuaDLL.lua_gettop(luaState);
 			LuaDLL.lua_getglobal(luaState, "package");  //_G.package
 			LuaDLL.lua_getfield(luaState, -1, "loaders"); //_G.package.loaders
 			LuaDLL.lua_pushnumber(luaState, 3); // key..
-			LuaDLL.lua_pushstdcallcfunction(luaState, luanetLoader); // value..
+			LuaDLL.lua_pushstdcallcfunction(luaState, luanetLoaderFunction); // value..
 			LuaDLL.lua_settable(luaState, -3); // _G.package.loaders[3] = luanet_loader
 			LuaDLL.lua_settop(luaState, oldtop);
 			return 0;
@@ -426,7 +431,7 @@ namespace LuaInterface
 		/* Replacement for the the native dll loader (at  _G.package.loaders[3]): 
 		 * Load from .NET based assemblies!
 		 */
-		public static int luanetLoader(System.IntPtr luaState)
+		public int luanetLoader(System.IntPtr luaState)
 		{
 			//int oldTop = LuaDLL.lua_gettop(luaState);
 
@@ -459,11 +464,14 @@ namespace LuaInterface
 						System.Reflection.MethodInfo mInfo = klass.GetMethod("load");
 						if (mInfo != null)
 						{
-							 Lua511.LuaCSFunction d = 
+							Lua511.LuaCSFunction d = 
 								(Lua511.LuaCSFunction)System.Delegate.CreateDelegate(
 								typeof(Lua511.LuaCSFunction), mInfo);
 							//LuaDLL.lua_settop(luaState, oldTop);
 							LuaDLL.lua_pushstdcallcfunction(luaState, d);
+
+							required_classes.Add(klass); // anchor the klass, not sure if needed, but better safe than sorry
+							required_open_Functions.Add(d); // anchor the delegate
 							return 1;
 						}
 					}
