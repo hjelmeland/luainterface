@@ -25,9 +25,12 @@ namespace Lua511.Module {
 			LuaDLL.lua_settable(L, -3); // top[key] = function
 		}
 		
+		// need to anchor the delegate objects, so .net GC do not snatch them.
+		static private LuaCSFunction dl_md5sum       = new LuaCSFunction(l_md5sum );
+
 		public static int load(lua_State L) {
 			LuaDLL.lua_newtable(L);
-			table_add_func(L, "sum", l_md5sum);
+			table_add_func(L, "sum", dl_md5sum);
 			return 1;
 		}
 	}

@@ -349,19 +349,28 @@ namespace Lua511.Module
 			LuaDLL.lua_rawset(L, -3); // top[key] = function
 		}
 
+		// need to anchor the delegate objects, so .net GC do not snatch them.
+		static private LuaCSFunction dl_new_tcp         = new LuaCSFunction(l_new_tcp );
+		static private LuaCSFunction dl_sock_receive_sz = new LuaCSFunction(l_sock_receive_sz );
+		static private LuaCSFunction dl_gettime         = new LuaCSFunction(l_gettime );
+		static private LuaCSFunction dl_sock_settimeout = new LuaCSFunction(l_sock_settimeout );
+		static private LuaCSFunction dl_sock_connect    = new LuaCSFunction(l_sock_connect );
+		static private LuaCSFunction dl_sock_send       = new LuaCSFunction(l_sock_send );
+		static private LuaCSFunction dl_sock_close      = new LuaCSFunction(l_sock_close );
+		
 		public static int load(lua_State L) {
 			LuaDLL.luaL_dostring(L, lua_code); // return function (function(tcp_constructor,..)
-			LuaDLL.lua_pushstdcallcfunction(L, l_new_tcp); // set parameter..
-			LuaDLL.lua_pushstdcallcfunction(L, l_sock_receive_sz); // set parameter..
-			LuaDLL.lua_pushstdcallcfunction(L, l_gettime); // set parameter..
+			LuaDLL.lua_pushstdcallcfunction(L, dl_new_tcp); // set parameter..
+			LuaDLL.lua_pushstdcallcfunction(L, dl_sock_receive_sz); // set parameter..
+			LuaDLL.lua_pushstdcallcfunction(L, dl_gettime); // set parameter..
 			
 			LuaDLL.lua_call(L, 3, 2); //call the returned function, returning module table + metatable
 			
 			// set Socket methods
-			table_add_func(L, "settimeout", l_sock_settimeout);
-			table_add_func(L, "connect",    l_sock_connect);
-			table_add_func(L, "send",       l_sock_send);
-			table_add_func(L, "close",      l_sock_close);
+			table_add_func(L, "settimeout", dl_sock_settimeout);
+			table_add_func(L, "connect",    dl_sock_connect);
+			table_add_func(L, "send",       dl_sock_send);
+			table_add_func(L, "close",      dl_sock_close);
 			
 			LuaDLL.lua_pop(L, 1); // pop the metatable
 			return 1; // return the module table

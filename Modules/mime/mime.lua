@@ -9,7 +9,7 @@
 -----------------------------------------------------------------------------
 local base = _G
 local ltn12 = require("ltn12")
-local mime = require("mime.coreZ")
+local mime = require("mime.core")
 local io = require("io")
 local string = require("string")
 local _M = mime

@@ -69,7 +69,6 @@ namespace Lua511.Module {
 			return 2;
 		}
 
-
 		// add a function as name to table at top of stack
 		private static void table_add_func (lua_State L, string name, LuaCSFunction function) {
 			LuaDLL.lua_pushstring (L, name); // key..
@@ -77,10 +76,14 @@ namespace Lua511.Module {
 			LuaDLL.lua_settable(L, -3); // top[key] = function
 		}
 		
+		// need to anchor the delegate objects, so .net GC do not snatch them.
+		static private LuaCSFunction dl_b64         = new LuaCSFunction(l_b64 );
+		static private LuaCSFunction dl_unb64         = new LuaCSFunction(l_unb64 );
+
 		public static int load(lua_State L) {
 			LuaDLL.lua_newtable(L);
-			table_add_func(L, "b64", l_b64);
-			table_add_func(L, "unb64", l_unb64);
+			table_add_func(L, "b64", dl_b64);
+			table_add_func(L, "unb64", dl_unb64);
 			return 1;
 		}
 	}

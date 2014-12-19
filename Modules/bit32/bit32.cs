@@ -212,6 +212,19 @@ namespace Lua511.Module
 			LuaDLL.lua_settable(L, -3); // top[key] = function
 		}
 
+		// need to anchor the delegate objects, so .net GC do not snatch them. http://stackoverflow.com/questions/7302045/callback-delegates-being-collected
+		static private LuaCSFunction db_arshift   = new LuaCSFunction(b_arshift );
+		static private LuaCSFunction db_and       = new LuaCSFunction(b_and );
+		static private LuaCSFunction db_test      = new LuaCSFunction(b_test );
+		static private LuaCSFunction db_or        = new LuaCSFunction(b_or );
+		static private LuaCSFunction db_xor       = new LuaCSFunction(b_xor );
+		static private LuaCSFunction db_not       = new LuaCSFunction(b_not );
+		static private LuaCSFunction db_extract   = new LuaCSFunction(b_extract );
+		static private LuaCSFunction db_replace   = new LuaCSFunction(b_replace );
+		static private LuaCSFunction db_lrot      = new LuaCSFunction(b_lrot );
+		static private LuaCSFunction db_rrot      = new LuaCSFunction(b_rrot );
+		static private LuaCSFunction db_lshift    = new LuaCSFunction(b_lshift );
+		static private LuaCSFunction db_rshift    = new LuaCSFunction(b_rshift );
 
 		public static int load(lua_State L)
 		{

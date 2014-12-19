@@ -148,12 +148,17 @@ namespace Lua511.Module
 			end
 			";
 
+		// need to anchor the delegate objects, so .net GC do not snatch them. http://stackoverflow.com/questions/7302045/callback-delegates-being-collected
+		static private LuaCSFunction dl_crc32_update     = new LuaCSFunction(l_crc32_update );
+		static private LuaCSFunction dl_n_tostring       = new LuaCSFunction(l_n_tostring );
+		static private LuaCSFunction dl_str_to_num       = new LuaCSFunction(l_str_to_num );
+
 		public static int load(lua_State L)
 		{
 			LuaDLL.luaL_dostring(L, lua_code); // return function (crc32_string)
-			LuaDLL.lua_pushstdcallcfunction(L, l_crc32_update); // set parameter..
-			LuaDLL.lua_pushstdcallcfunction(L, l_n_tostring); // set parameter..
-			LuaDLL.lua_pushstdcallcfunction(L, l_str_to_num); // set parameter..
+			LuaDLL.lua_pushstdcallcfunction(L, dl_crc32_update); // set parameter..
+			LuaDLL.lua_pushstdcallcfunction(L, dl_n_tostring); // set parameter..
+			LuaDLL.lua_pushstdcallcfunction(L, dl_str_to_num); // set parameter..
 			LuaDLL.lua_call(L, 3, 1); //call the returned function, returning module table
 			return 1;
 		}
