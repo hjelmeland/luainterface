@@ -26,6 +26,11 @@ local function test ()
 		if luanet then
 			assert(s2.timeout == 3.2)
 		end
+		
+		assert(s2:settimeout () == 1)
+		if luanet then
+			assert(s2.timeout == nil)
+		end
 
 		assert(s2:connect(address, port) == 1);
 		assert(s2:close() == 1, 'close');

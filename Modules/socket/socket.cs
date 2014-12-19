@@ -80,10 +80,14 @@ namespace Lua511.Module
 		
 		// settimeout method
 		private static int l_sock_settimeout(lua_State L) {
+			
 			LuaDLL.luaL_checktype(L, 1, LuaTypes.LUA_TTABLE);
-			double timeout = LuaDLL.luaL_checknumber(L,2);
+			double timeout = LuaDLL.luaL_optnumber(L,2, -1);
 			LuaDLL.lua_pushstring (L, "timeout"); // key..
-			LuaDLL.lua_pushvalue(L,2); // value: copy of timeout
+			if (timeout >= 0) 
+				LuaDLL.lua_pushnumber(L,timeout); // value
+			else
+				LuaDLL.lua_pushnil(L); // remove value
 			LuaDLL.lua_rawset(L, 1); // socket.timeout = timeout
 			
 			LuaDLL.lua_rawgeti(L,1, 1); 
@@ -91,10 +95,15 @@ namespace Lua511.Module
 			Socket s = udata2Socket(L, -1);
 			if ( s == null ) return 2; // error results from udata2Socket()
 			
-			if (timeout == 0) {
+			if (timeout < 0) {     // timeout = nil
+				s.Blocking = true;
+				s.ReceiveTimeout  = 0;
+				s.SendTimeout = 0;
+			} else if (timeout == 0) {
 				// s.Blocking = false; // not supported for now
 			} else {
 				int ms = (int)(1000*timeout);
+				s.Blocking = true;
 				s.ReceiveTimeout  = ms;
 				s.SendTimeout = ms;
 			}
@@ -244,8 +253,8 @@ namespace Lua511.Module
 
 		private const string lua_code = @"
 			return function(tcp_constructor, sock_receive, gettime)
-				local error,getmetatable,pcall,setmetatable,type
-					= error,getmetatable,pcall,setmetatable,type
+				local error,getmetatable,pcall,select,setmetatable,type
+					= error,getmetatable,pcall,select,setmetatable,type
 				
 				--protect/newtry adapted from https://github.com/hjelmeland/try-lua/blob/master/try.lua 
 				local try_error_mt = { } -- tagging error as newtry error
@@ -338,6 +347,7 @@ namespace Lua511.Module
 					is_try_error = is_try_error,
 					tcp = tcp,
 					gettime=gettime,
+					skip=select,
 				}, tcp_mt
 			end
 		";
