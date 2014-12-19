@@ -239,8 +239,8 @@ namespace Lua511.Module
 			LuaDLL.luanet_newudata(L, index);
 			if (LuaDLL.luaL_newmetatable(L, registername) == 1)
 			{
-				table_add_func(L,  "__gc", l_socket_gc);
-				table_add_func(L,  "__tostring", l_sockToString);
+				table_add_func(L,  "__gc", dl_socket_gc);
+				table_add_func(L,  "__tostring", dl_sockToString);
 			}
 			LuaDLL.lua_setmetatable(L, -2);
 			return 1;
@@ -296,10 +296,15 @@ namespace Lua511.Module
 						partial_data = partial_data .. (self.rcv_buffer or '')
 						
 						if type(pattern) == 'number' then -- pattern is length
-							local length = pattern - #partial_data
-							if length < 0 then length = 0 end
+							local length = pattern
+							if length <= #partial_data then
+								self.rcv_buffer = partial_data:sub(length+1)
+								return partial_data:sub(1, length)
+							end
+							length = length - #partial_data
 							local data, err = sock_receive(net_socket, length)
 							if not data then return nil, err end
+							self.rcv_buffer = nil
 							return partial_data .. data
 						elseif pattern == '*l' then  -- return single line
 							local line, rest = partial_data:match'([^\n]*)\n(.*)'
@@ -311,7 +316,6 @@ namespace Lua511.Module
 								while true do
 									local data, err =  sock_receive(net_socket, BLOCK_SZ)
 									if not data then return nil, err, partial_data end
-									--if data == '' then data = '\n' end -- force end of file
 									local line, rest = data:match'([^\n]*)\n(.*)'
 									if line then
 										line = partial_data..line
@@ -347,7 +351,7 @@ namespace Lua511.Module
 					is_try_error = is_try_error,
 					tcp = tcp,
 					gettime=gettime,
-					skip=select,
+					skip=function(n,...) return select(n+1, ...) end,
 				}, tcp_mt
 			end
 		";
@@ -367,6 +371,8 @@ namespace Lua511.Module
 		static private LuaCSFunction dl_sock_connect    = new LuaCSFunction(l_sock_connect );
 		static private LuaCSFunction dl_sock_send       = new LuaCSFunction(l_sock_send );
 		static private LuaCSFunction dl_sock_close      = new LuaCSFunction(l_sock_close );
+		static private LuaCSFunction dl_socket_gc       = new LuaCSFunction(l_socket_gc );
+		static private LuaCSFunction dl_sockToString    = new LuaCSFunction(l_sockToString );
 		
 		public static int load(lua_State L) {
 			LuaDLL.luaL_dostring(L, lua_code); // return function (function(tcp_constructor,..)

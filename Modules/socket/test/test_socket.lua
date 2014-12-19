@@ -141,6 +141,20 @@ local function test ()
 		end
 	end
 	
+	do -- test socket.skip
+		do
+			local a, b, c = S.skip (1, 1, 2, 3, 4)
+			assert(a==2)
+			assert(b==3)
+			assert(c==4)
+		end
+		do
+			local a, b, c = S.skip (2, 1, 2, 3, 4)
+			assert(a==3)
+			assert(b==4)
+			assert(c==nil)
+		end
+	end
 end
 
 local start = S.gettime()

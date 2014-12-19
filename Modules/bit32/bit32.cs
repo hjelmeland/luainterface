@@ -229,18 +229,18 @@ namespace Lua511.Module
 		public static int load(lua_State L)
 		{
 			LuaDLL.lua_newtable(L);
-			table_add_func(L, "arshift", b_arshift);
-			table_add_func(L, "band", b_and);
-			table_add_func(L, "btest", b_test);
-			table_add_func(L, "bor", b_or);
-			table_add_func(L, "bxor", b_xor);
-			table_add_func(L, "bnot", b_not);
-			table_add_func(L, "extract", b_extract);
-			table_add_func(L, "replace", b_replace);
-			table_add_func(L, "lrotate", b_lrot);
-			table_add_func(L, "rrotate", b_rrot);
-			table_add_func(L, "lshift", b_lshift);
-			table_add_func(L, "rshift", b_rshift);
+			table_add_func(L, "arshift", db_arshift);
+			table_add_func(L, "band", db_and);
+			table_add_func(L, "btest", db_test);
+			table_add_func(L, "bor", db_or);
+			table_add_func(L, "bxor", db_xor);
+			table_add_func(L, "bnot", db_not);
+			table_add_func(L, "extract", db_extract);
+			table_add_func(L, "replace", db_replace);
+			table_add_func(L, "lrotate", db_lrot);
+			table_add_func(L, "rrotate", db_rrot);
+			table_add_func(L, "lshift", db_lshift);
+			table_add_func(L, "rshift", db_rshift);
 			return 1;
 		}
 	}
