@@ -1280,6 +1280,12 @@ namespace LuaInterface.Tests
             Lua511.LuaDLL.lua_pushbytes(luaState, new byte[] { 0x20, 0x00, 0xff }, 2 );
             return 1;
         }
+        
+        private static int _test_pushbytes_function3(IntPtr luaState)
+        {
+            Lua511.LuaDLL.lua_pushbytes(luaState, new byte[] {} ); // empty array
+            return 1;
+        }
 
         private static int _test_tobytes_function(IntPtr luaState)
         {
@@ -1308,13 +1314,20 @@ namespace LuaInterface.Tests
             TestOk(Convert.ToUInt32(res[1]) == 0x00);
             TestOk(Convert.ToUInt32(res[2]) == 0xff);
 
-           // test LuaDLL.lua_pushbytes(bytes, length)
+            // test LuaDLL.lua_pushbytes(bytes, length)
             f = _Lua.NewLuaCSFunction(_test_pushbytes_function2);
             _Lua["FUNC"] = f;  // set new Function as global variable
             res = _Lua.DoString("return FUNC():byte(1,-1)");
             TestOk(res.Length == 2);
             TestOk(Convert.ToUInt32(res[0]) == 0x20);
             TestOk(Convert.ToUInt32(res[1]) == 0x00);
+
+            // test LuaDLL.lua_pushbytes(bytes, length)
+            f = _Lua.NewLuaCSFunction(_test_pushbytes_function3);
+            _Lua["FUNC"] = f;  // set new Function as global variable
+            res = _Lua.DoString("return FUNC() == '' ");
+            TestOk(res.Length == 1);
+            TestOk(Convert.ToBoolean(res[0]) == true);
 
             // test LuaDLL.lua_tobytes()
             _Lua["FUNC2"] = _Lua.NewLuaCSFunction(_test_tobytes_function);
@@ -1325,7 +1338,49 @@ namespace LuaInterface.Tests
             Destroy();
         }
         
-        /// <summary>
+        /* Test C# strings converted to Lua UTF8 and back
+         * 
+         */
+        public void TestUtf8()
+        {
+            Init();
+            _Lua["STRING"] = "øå"; 
+            object[] res =   _Lua.DoString("return STRING:byte(1,-1)");
+            TestOk ( 
+                  Convert.ToUInt32(res[0]) == 0xc3 &&
+                  Convert.ToUInt32(res[1]) == 0xb8 &&
+                  Convert.ToUInt32(res[2]) == 0xc3 &&
+                  Convert.ToUInt32(res[3]) == 0xa5 &&
+                  res.Length == 4
+            );
+
+            TestOk(_Lua["STRING"].ToString() == "øå");
+            _Lua.DoString("STRING2='ÆØ'");
+            TestOk(_Lua["STRING2"].ToString() == "ÆØ");
+            
+           _Lua["STRING3"] = ""; // test empty string
+            TestOk(_Lua["STRING3"].ToString() == "");
+            
+            /* test converting lua String with invalid UTF-8:
+             * System.Text.Encoding.UTF8 fallback is to replace invalid 
+             * bytes with Unicode Replacement character U+FFFD.
+             */
+            res = _Lua.DoString("return string.char(0x66, 0xFC, 0x72)");
+            TestOk ( 
+                  Convert.ToString(res[0]) == "f\uFFFDr" &&
+                  res.Length == 1
+            );
+
+            /* test converting lua String with embedded null
+             */
+            res = _Lua.DoString("return string.char(0x45, 0x67, 0x00, 0x6c)");
+            TestOk ( 
+                  Convert.ToString(res[0]) == "Eg\u0000l" && 
+                  res.Length == 1
+            );
+
+        }
+       /// <summary>
         /// Basic multiply method which expects 2 floats
         /// </summary>
         /// <param name="val"></param>
@@ -1593,6 +1648,9 @@ namespace LuaInterface.Tests
 
             Console.WriteLine("Testing LuaDLL.lua_pushbytes and LuaDLL.lua_tobytes  ...");
             obj.TestPushGetBytes();
+
+            Console.WriteLine("Testing utf-8  ...");
+            obj.TestUtf8();
 
             Console.WriteLine("Testing overriding a C# method with Lua...");
             obj.LuaTableOverridedMethod();

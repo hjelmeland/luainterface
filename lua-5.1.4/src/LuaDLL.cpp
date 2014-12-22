@@ -159,10 +159,10 @@ namespace Lua511
 
 		static void luaL_error(IntPtr luaState, String^ message)
 		{
-			char *cs = (char *) Marshal::StringToHGlobalAnsi(message).ToPointer();
+			array<Byte>^ utf8bytes = Encoding::UTF8->GetBytes(message);
+			pin_ptr<Byte> cs = utf8bytes->Length ? &utf8bytes[0] : (Byte*)"";
 
-			::luaL_error(toState, cs);
-			Marshal::FreeHGlobal(IntPtr(cs));
+			::luaL_error(toState, (char *)cs);
 		}
 
         static void luaL_where(IntPtr luaState, int level)
@@ -213,11 +213,9 @@ namespace Lua511
 		// steffenj: BEGIN Lua 5.1.1 API change (lua_doString^ is now a macro luaL_dostring)
 		static int luaL_loadstring(IntPtr luaState, String^ chunk)
 		{
-			char *cs = (char *) Marshal::StringToHGlobalAnsi(chunk).ToPointer();
-
-			int result = ::luaL_loadstring(toState, cs);
-			Marshal::FreeHGlobal(IntPtr(cs));
-
+			array<Byte>^ utf8bytes = Encoding::UTF8->GetBytes(chunk);
+			pin_ptr<Byte> cs = utf8bytes->Length ? &utf8bytes[0] : (Byte*)"";
+			int result = ::luaL_loadstring(toState, (char *)cs);
 			return result;
 		}
 
@@ -513,10 +511,13 @@ namespace Lua511
 				return String::Format("{0}", lua_tonumber(luaState, index));
 			else if(t == LuaTypes::LUA_TSTRING)
 			{
+
 				size_t strlen;
 
 				const char *str = ::lua_tolstring(toState, index, &strlen);
-				return Marshal::PtrToStringAnsi(IntPtr((char *) str), strlen);
+				array<Byte>^ bytes = gcnew array<Byte>(strlen);
+				Marshal::Copy(IntPtr((void *)str), bytes, 0, strlen);
+				return Encoding::UTF8->GetString(bytes);
 			}
 			else if(t == LuaTypes::LUA_TNIL)
 				return nullptr;			// treat lua nulls to as C# nulls
@@ -603,20 +604,19 @@ namespace Lua511
 		}
 #endif
 
+// http://stackoverflow.com/questions/6596242/net-systemstring-to-utf8-bytes-stored-in-char
 
 		static void lua_pushstring(IntPtr luaState, String^ str)
 		{
-			char *cs = (char *) Marshal::StringToHGlobalAnsi(str).ToPointer();
-
-			::lua_pushstring(toState, cs);
-
-			Marshal::FreeHGlobal(IntPtr(cs));
+			array<Byte>^ utf8bytes = Encoding::UTF8->GetBytes(str);
+			pin_ptr<Byte> cs = utf8bytes->Length ? &utf8bytes[0] : (Byte*)"";
+			::lua_pushstring(toState, (char *)cs);
 		}
 
 		// push byte array as Lua string
 		static void lua_pushbytes(IntPtr luaState, array<System::Byte>^  bytes)
 		{
-			pin_ptr<unsigned char> str = &bytes[0];
+			pin_ptr<Byte> str = bytes->Length ? &bytes[0] : (Byte*)"";
 			::lua_pushlstring(toState, (char*)str, bytes->Length);
 		}
 		
@@ -624,7 +624,7 @@ namespace Lua511
 		static void lua_pushbytes(IntPtr luaState, array<System::Byte>^  bytes, int length)
 		{
 			if (length > bytes->Length) length = bytes->Length;
-			pin_ptr<unsigned char> str = &bytes[0];
+			pin_ptr<Byte> str = bytes->Length ? &bytes[0] : (Byte*)"";
 			::lua_pushlstring(toState, (char*)str, length);
 		}
 
@@ -684,13 +684,13 @@ namespace Lua511
 
 		static int luaL_loadbuffer(IntPtr luaState, String^ buff, String^ name)
 		{
-			char *cs1 = (char *) Marshal::StringToHGlobalAnsi(buff).ToPointer();
+			array<Byte>^ utf8bytes = Encoding::UTF8->GetBytes(buff);
+			pin_ptr<Byte> cs1 = &utf8bytes[0];
 			char *cs2 = (char *) Marshal::StringToHGlobalAnsi(name).ToPointer();
 
 			//CP: fix for MBCS, changed to use cs1's length (reported by qingrui.li)
-			int result = ::luaL_loadbuffer(toState, cs1, strlen(cs1), cs2);
+			int result = ::luaL_loadbuffer(toState, (const char *)cs1, strlen((char *) cs1), cs2);
 
-			Marshal::FreeHGlobal(IntPtr(cs1));
 			Marshal::FreeHGlobal(IntPtr(cs2));
 
 			return result;
