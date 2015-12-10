@@ -5,6 +5,31 @@
 #define luac_c
 #define loslib_c
 
+#include <Windows.h>
+#include "stdio.h"
+
+FILE *FOPENUTF8(
+	const char *filename,
+	const char *mode) {
+
+	int file_wchars_num = MultiByteToWideChar(CP_UTF8, 0, filename, -1, NULL, 0);
+	wchar_t* filename_wstr = new wchar_t[file_wchars_num];
+	MultiByteToWideChar(CP_UTF8, 0, filename, -1, filename_wstr, file_wchars_num);
+
+	int mode_wchars_num = MultiByteToWideChar(CP_UTF8, 0, mode, -1, NULL, 0);
+	wchar_t* mode_wstr = new wchar_t[mode_wchars_num];
+	MultiByteToWideChar(CP_UTF8, 0, mode, -1, mode_wstr, mode_wchars_num);
+
+	FILE * fp = _wfopen(filename_wstr, mode_wstr);
+
+	delete [] filename_wstr;
+	delete [] mode_wstr;
+	return fp;
+}
+
+#define fopen FOPENUTF8
+
+
 #include "lua.h"
 
 #include "lapi.c"
